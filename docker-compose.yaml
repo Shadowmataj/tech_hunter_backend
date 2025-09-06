@@ -1,0 +1,38 @@
+# To execute this docker compose yml file use `docker compose -f docker-compose-v3.yml up`
+# Add the `-d` flag at the end for detached execution
+# To stop the execution, hit Ctrl+C, and then `docker compose -f docker-compose-v3.yml down`
+services:
+  app:
+    build: 
+      context: .
+      args:
+        - DEV=true
+    volumes:
+      - ./:/app:ro
+    ports:
+    - "80:5000"
+    env_file:
+      - ./.env.devel
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14
+    container_name: tech_hunter_db
+    restart: always
+    shm_size: 128mb
+    volumes:
+      - "data:/var/lib/postgresql/data"
+    environment:
+      POSTGRES_PASSWORD: example
+      POSTGRES_USER: example
+      POSTGRES_DB: postgres
+  adminer:
+    image: adminer
+    container_name: tech_hunter_adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+volumes:
+  data:
