@@ -10,7 +10,7 @@ services:
     volumes:
       - ./:/app:ro
     ports:
-    - "80:5000"
+    - "5000:5000"
     env_file:
       - ./.env.devel
     depends_on:

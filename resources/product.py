@@ -202,19 +202,10 @@ class ProductsList(MethodView):
             product.basis_price = data.basis_price
             product.custumers_opinion = data.custumers_opinion
             product.ranking = data.ranking
-
-            if data.images:
-                for image in data.images:
-                    db_image = ProductImage.query.filter_by(url=image.url)
-                    if not db_image:
-                        product.images.append(image)
-
-            if data.twister:
-                for twister in data.twister:
-                    db_twister = Twister.query.filter_by(
-                        asin=twister.asin, name=twister.name)
-                    if not db_twister:
-                        product.twister.append(twister)
+            product.images.clear()
+            product.images = data.images
+            product.twister.clear()
+            product.twister = data.twister
 
             db.session.commit()
 
