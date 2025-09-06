@@ -192,6 +192,8 @@ class ProductsList(MethodView):
                 product = ProductModel(asin=asin)
                 db.session.add(product)
                 count_created += 1
+            else:
+                continue
 
             product.price = data.price
             product.url = data.url
