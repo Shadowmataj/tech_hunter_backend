@@ -5,7 +5,9 @@ flask_smorest to create blueprints, routes,
 arguments and responses (the last two based on schemas).
 """
 
-from blocklist import BLOCKLIST
+import datetime
+
+from app.blocklist import BLOCKLIST
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from passlib.hash import pbkdf2_sha256
@@ -18,12 +20,13 @@ from flask_jwt_extended import (
     get_jwt_identity,
 )
 
-from db import db
+from app.extensions import db
 
-from models import UserModel
-from schemas import UserSchema, UserRegisterSchema
+from ..models import UserModel
+from app.schemas import UserSchema, UserRegisterSchema
 
-blp = Blueprint("users", __name__, description="Operations on tags", url_prefix="/api")
+blp = Blueprint("users", __name__,
+                description="Operations on tags", url_prefix="/api")
 
 
 @blp.route("/register")
@@ -34,19 +37,11 @@ class UserRegister(MethodView):
     def post(self, user_data):
         """Endpoint to register a user."""
         if UserModel.query.filter(
-            or_(
-                UserModel.username == user_data["username"],
-                UserModel.email == user_data["email"],
-            )
+                UserModel.email == user_data.email
         ).first():
-            abort(409, message="A user with that username or email already exists.")
+            abort(409, message="A user with that email already exists.")
 
-        user = UserModel(
-            username=user_data["username"],
-            password=pbkdf2_sha256.hash(user_data["password"]),
-            email=user_data["email"]
-        )
-        db.session.add(user)
+        db.session.add(user_data)
         db.session.commit()
 
         return {"message": "The user has been registered."}, 201
@@ -60,12 +55,16 @@ class UserLogin(MethodView):
     def post(self, user_data):
         """Endpoint to login a user."""
         user = UserModel.query.filter(
-            UserModel.username == user_data["username"]
+            UserModel.email == user_data.email
         ).first()
-        if user and pbkdf2_sha256.verify(user_data["password"], user.password):
+        if user and pbkdf2_sha256.verify(user_data.password, user.password):
             access_token = create_access_token(
-                identity=str(user.id), fresh=True)
-            refresh_token = create_refresh_token(identity=str(user.id))
+                identity=str(user.id),
+                fresh=True,
+                expires_delta=datetime.timedelta(minutes=60),
+                additional_claims={"is_admin": user.role.name == "admin"})
+            refresh_token = create_refresh_token(identity=str(
+                user.id), expires_delta=datetime.timedelta(weeks=1))
             return {"access_token": access_token, "refresh_token": refresh_token}
         abort(401, message="Invalid credentials.")
 
@@ -86,6 +85,7 @@ class RefreshToken(MethodView):
 class UserLogout(MethodView):
     """Class to handle the logout."""
 
+    @jwt_required()
     def post(self):
         """Endpoint to handle the logout."""
         jti = get_jwt()["jti"]
@@ -101,14 +101,23 @@ class User(MethodView):
     @blp.response(200, UserSchema)
     def get(self, user_id):
         """Endpoint to get a specific user by the id."""
-        return UserModel.query.get_or_404(user_id)
+        jwt = get_jwt()
+        if jwt.get("is_admin"):
+            abort(401, message="Admin privilege required.")
+        user = db.session.get(UserModel, user_id)
+        if not user:
+            abort(404, message="User not found.")
+        return user
 
+    @jwt_required()
     def delete(self, user_id):
         """Endpoint to delete a specific user by the id."""
         jwt = get_jwt()
-        if not jwt.get("is_admin"):
+        if jwt.get("is_admin"):
             abort(401, message="Admin privilege required.")
-        user = UserModel.query.get_or_404(user_id)
+        user = db.session.get(UserModel, user_id)
+        if not user:
+            abort(404, message="User not found.")
         db.session.delete(user)
         db.session.commit()
         return {"message": "User deleted."}, 200

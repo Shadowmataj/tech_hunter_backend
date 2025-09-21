@@ -1,5 +1,5 @@
 """Product model."""
-from db import db
+from ..extensions import db
 
 class ProductModel(db.Model):
     __tablename__ = "products"

@@ -6,11 +6,12 @@ from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 from flask_cors import CORS
 
-from db import db
-from blocklist import BLOCKLIST
+from .extensions import db
+from .blocklist import BLOCKLIST
 
-from resources.product import blp as ProductBlueprint
-from resources.user import blp as UserBlueprint
+from .resources.product import blp as ProductBlueprint
+from .resources.user import blp as UserBlueprint
+
 
 def create_app(db_url=None):
     app = Flask(__name__)
@@ -27,7 +28,6 @@ def create_app(db_url=None):
     app.config["OPENAPI_SWAGGER_UI_URL"] = (
             "http://cdn.jsdelivr.net/npm/swagger-ui-dist/"
         )
-    
     app.config["SQLALCHEMY_DATABASE_URI"] = db_url or os.getenv(
         "DATABASE_URL", "sqlite:///data.db"
     )
@@ -65,12 +65,6 @@ def create_app(db_url=None):
                 401,
             )
         )
-
-    @jwt.additional_claims_loader
-    def add_claims_jwt(identity):
-        if identity == "1":
-            return {"is_admin": True}
-        return{"is_admin": False}
 
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):

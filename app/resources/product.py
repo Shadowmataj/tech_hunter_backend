@@ -9,15 +9,15 @@ import sys
 
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from schemas import ProductOutputSchema, ProductInputSchema, PaginationProductsSchema
+from app.schemas import ProductOutputSchema, ProductInputSchema, PaginationProductsSchema
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import SQLAlchemyError
 
 from flask_jwt_extended import jwt_required, get_jwt
 
-from models.product import ProductModel, ProductImage, Twister
+from ..models.product import ProductModel, ProductImage, Twister
 
-from db import db
+from app.extensions import db
 
 blp = Blueprint("products", __name__,
                 description="Operations on products.", url_prefix="/api")
@@ -136,6 +136,7 @@ class ProductsList(MethodView):
 
         pagination = query.paginate(
             page=page, per_page=per_page, error_out=True)
+        print(pagination)
 
         return {
             "products": pagination.items,
@@ -192,8 +193,6 @@ class ProductsList(MethodView):
                 product = ProductModel(asin=asin)
                 db.session.add(product)
                 count_created += 1
-            else:
-                continue
 
             product.price = data.price
             product.url = data.url

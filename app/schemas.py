@@ -3,37 +3,77 @@ Module to handle api schemas.
 This function allows to structure the
 requests and the responses in our endpoints.
 """
-from marshmallow import Schema, fields, EXCLUDE, post_dump
+from marshmallow import Schema, fields, EXCLUDE, post_dump, post_load
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
-from models.user import UserModel
-from models.product import ProductModel, ProductImage, Twister
-from db import db
+from .models.user import UserModel, RoleModel
+from .models.product import ProductModel, ProductImage, Twister
+from passlib.hash import pbkdf2_sha256
+from app.extensions import db
 
 
-class UserSchema(Schema):
+class RoleSchema(SQLAlchemyAutoSchema):
+    """Role Schema"""
+    class Meta:
+        model = RoleModel
+        load_instance = True
+        sqla_session = db.session
+        unknown = EXCLUDE  
+
+    id = fields.Int(dump_only=True)
+    name = fields.Str(required=True)
+
+class UserSchema(SQLAlchemyAutoSchema):
     """User Schema"""
+    class Meta:
+        model = UserModel
+        load_instance = True
+        sqla_session = db.session
+        include_fk = True
+        unknown = EXCLUDE  
 
     id = fields.Int(dump_only=True)
-    username = fields.Str(required=True)
-    password = fields.Str(required=True, load_only=True)
-
-
-class UserRegisterSchema(Schema):
-    """User Register Schema"""
-
-    id = fields.Int(dump_only=True)
-    username = fields.Str(required=True)
+    first_name = fields.Str(required=False)
+    last_name = fields.Str(required=False)
+    birth_date = fields.Date(required=False)
     email = fields.Str(required=True)
     password = fields.Str(required=True, load_only=True)
+    role = fields.Nested(RoleSchema, dump_only=True, required=False)
+
+
+
+
+class UserRegisterSchema(SQLAlchemyAutoSchema):
+    """User Register Schema"""
+    class Meta:
+        model = UserModel
+        load_instance = True
+        sqla_session = db.session
+        include_fk = True
+        nknown = EXCLUDE 
+
+    id = fields.Int(dump_only=True)
+    first_name = fields.Str(required=True)
+    last_name = fields.Str(required=True)
+    birth_date = fields.Date(required=True)
+    email = fields.Str(required=True)
+    password = fields.Str(required=True, load_only=True)
+    role = fields.Nested(RoleSchema, dump_only=True, load_default=2)
+    
+    @post_load
+    def hash_password(self, data, **kwargs):
+        """Reemplaza password en texto plano con el hash antes de crear User"""
+        if "password" in data:
+            data["password"] = pbkdf2_sha256.hash(data.pop("password"))
+        return data
 
 
 class ProductImageSchema(SQLAlchemyAutoSchema):
     class Meta:
         model = ProductImage
         load_instance = True
-        include_fk = True  # para incluir product_id
+        include_fk = True  
         sqla_session = db.session
-        nknown = EXCLUDE  # ignora campos desconocidos
+        nknown = EXCLUDE  
 
     id = fields.Int(dump_only=True)
     url = fields.Str(required=True)
@@ -46,7 +86,7 @@ class TwisterSchema(SQLAlchemyAutoSchema):
         load_instance = True
         include_fk = True
         sqla_session = db.session
-        unknown = EXCLUDE  # ignora campos desconocidos
+        unknown = EXCLUDE 
 
     id = fields.Int(dump_only=True)
     type = fields.Str(required=True)
@@ -166,7 +206,12 @@ class PaginationProductsSchema(Schema):
     products = fields.List(fields.Nested(ProductOutputSchema), dump_only=True)
     page = fields.Int(load_default=1)
     per_page = fields.Int(load_default=10)
-    min_price = fields.Float()
-    max_price = fields.Float()
-    sort_by = fields.Str(load_default='ranking')  # campo por el que ordenar
-    sort_order = fields.Str(load_default='asc')  # 'asc' o 'desc'
+    min_price = fields.Float(load_only=True)
+    max_price = fields.Float(load_only=True)
+    sort_by = fields.Str(load_default='ranking', load_only=True)  
+    sort_order = fields.Str(load_default='asc', load_only=True) 
+    total = fields.Integer(dump_only=True)
+    pages = fields.Integer(dump_only=True)
+    has_next = fields.Bool(dump_only=True)
+    has_prev = fields.Bool(dump_only=True)
+
