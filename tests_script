@@ -4,9 +4,14 @@ echo 'Starting postgresql container'
 docker run --name pg-test -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=test_db -p 5433:5432 -d postgres:16
 sleep 2
 
+source /Users/chrismata/Desktop/tech_hunter/.venv/bin/activate
+
 echo '################## Starting tests ####################'
 python -B -m unittest discover -s test -p "test_*.py"
 echo '################## Finishing tests ###################'
+
+deactivate
+
 echo 'Stopping container'
 docker stop pg-test
 echo 'Removing container'

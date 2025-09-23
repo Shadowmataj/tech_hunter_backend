@@ -3,15 +3,11 @@ LABEL maintainer="christianmataj"
 
 WORKDIR /app
 
-COPY requirements.txt .
-COPY requirements.dev.txt .
+COPY app/requirements.txt .
 
 RUN apk add --no-cache gcc musl-dev libffi-dev postgresql-dev && \
         pip install --upgrade pip && \
-        pip install -r requirements.txt &&\
-        if [[ $DEV == "true" ]]; then \
-                pip install -r requirements.dev.txt \
-        fi
+        pip install -r requirements.txt
 
 
 RUN adduser \

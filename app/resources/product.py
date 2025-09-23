@@ -9,7 +9,7 @@ import sys
 
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from app.schemas import ProductOutputSchema, ProductInputSchema, PaginationProductsSchema
+from ..schemas import ProductOutputSchema, ProductInputSchema, PaginationProductsSchema
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -17,7 +17,7 @@ from flask_jwt_extended import jwt_required, get_jwt
 
 from ..models.product import ProductModel, ProductImage, Twister
 
-from app.extensions import db
+from ..extensions import db
 
 blp = Blueprint("products", __name__,
                 description="Operations on products.", url_prefix="/api")
@@ -31,6 +31,9 @@ class Product(MethodView):
     @blp.response(201, ProductOutputSchema)
     def post(self, product_data: ProductModel):
         """Endpoint to post one product."""
+        jwt = get_jwt()
+        if not jwt.get("is_admin"):
+            abort(401, message="Admin privilege required.")
         if ProductModel.query.filter_by(asin=product_data.asin).first():
             abort(409, message="A product with that ASIN already exists.")
         try:
@@ -58,7 +61,10 @@ class ProductOperations(MethodView):
     @blp.arguments(ProductInputSchema)
     @blp.response(200, ProductOutputSchema)
     def put(self, product_data, asin):
-
+        """"""
+        jwt = get_jwt()
+        if not jwt.get("is_admin"):
+            abort(401, message="Admin privilege required.")
         product = ProductModel.query.filter_by(asin=asin).first()
 
         if not product:
@@ -94,6 +100,9 @@ class ProductOperations(MethodView):
     @blp.response(200)
     def delete(self, asin):
         """Endpoint to delete a product using the asin."""
+        jwt = get_jwt()
+        if not jwt.get("is_admin"):
+            abort(401, message="Admin privilege required.")
         product = ProductModel.query.filter_by(asin=asin).first_or_404()
 
         db.session.delete(product)
@@ -136,7 +145,6 @@ class ProductsList(MethodView):
 
         pagination = query.paginate(
             page=page, per_page=per_page, error_out=True)
-        print(pagination)
 
         return {
             "products": pagination.items,
@@ -148,11 +156,14 @@ class ProductsList(MethodView):
             "has_prev": pagination.has_prev
         }
 
-    # @jwt_required()
+    @jwt_required()
     @blp.arguments(ProductInputSchema(many=True))
     @blp.response(201)
     def post(self, products_data: ProductModel):
         """Endpoint to post a list of products"""
+        jwt = get_jwt()
+        if not jwt.get("is_admin"):
+            abort(401, message="Admin privilege required.")
 
         new_products = []
         repeated_count = 0
@@ -178,6 +189,9 @@ class ProductsList(MethodView):
     @blp.arguments(ProductInputSchema(many=True))
     def put(self, products_data):
         """Endpoint to update the products on data base."""
+        jwt = get_jwt()
+        if not jwt.get("is_admin"):
+            abort(401, message="Admin privilege required.")
 
         count_updated = 0
         count_created = 0
@@ -219,6 +233,9 @@ class ProductsList(MethodView):
     @blp.response(200)
     def delete(self):
         """Endpoint to delete ALL products."""
+        jwt = get_jwt()
+        if not jwt.get("is_admin"):
+            abort(401, message="Admin privilege required.")
         try:
             # Delete all records in ProductModel
             products = ProductModel.query.all()

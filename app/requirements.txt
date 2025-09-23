@@ -8,3 +8,5 @@ psycopg2
 marshmallow-sqlalchemy
 python-dotenv
 flask-cors
+flask
+flask-migrate

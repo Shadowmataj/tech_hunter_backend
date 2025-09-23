@@ -8,7 +8,7 @@ from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 from .models.user import UserModel, RoleModel
 from .models.product import ProductModel, ProductImage, Twister
 from passlib.hash import pbkdf2_sha256
-from app.extensions import db
+from .extensions import db
 
 
 class RoleSchema(SQLAlchemyAutoSchema):

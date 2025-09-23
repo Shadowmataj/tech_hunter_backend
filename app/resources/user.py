@@ -7,7 +7,7 @@ arguments and responses (the last two based on schemas).
 
 import datetime
 
-from app.blocklist import BLOCKLIST
+from ..blocklist import BLOCKLIST
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from passlib.hash import pbkdf2_sha256
@@ -20,10 +20,10 @@ from flask_jwt_extended import (
     get_jwt_identity,
 )
 
-from app.extensions import db
+from ..extensions import db
 
 from ..models import UserModel
-from app.schemas import UserSchema, UserRegisterSchema
+from ..schemas import UserSchema, UserRegisterSchema
 
 blp = Blueprint("users", __name__,
                 description="Operations on tags", url_prefix="/api")
@@ -102,7 +102,7 @@ class User(MethodView):
     def get(self, user_id):
         """Endpoint to get a specific user by the id."""
         jwt = get_jwt()
-        if jwt.get("is_admin"):
+        if not jwt.get("is_admin"):
             abort(401, message="Admin privilege required.")
         user = db.session.get(UserModel, user_id)
         if not user:
@@ -113,7 +113,7 @@ class User(MethodView):
     def delete(self, user_id):
         """Endpoint to delete a specific user by the id."""
         jwt = get_jwt()
-        if jwt.get("is_admin"):
+        if not jwt.get("is_admin"):
             abort(401, message="Admin privilege required.")
         user = db.session.get(UserModel, user_id)
         if not user:

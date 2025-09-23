@@ -1,6 +1,7 @@
 from test.base_test import BaseTest
 from app.extensions import db
 from app.models.user import RoleModel, UserModel
+from app.schemas import UserSchema
 
 
 class UserTest(BaseTest):
@@ -26,8 +27,8 @@ class UserTest(BaseTest):
         }
 
         roles = [
-            {"id": 1, "name": "user"},
-            {"id": 2, "name": "admin"}
+            {"id": 1, "name": "admin"},
+            {"id": 2, "name": "user"}
         ]
         for role_data in roles:
             role = RoleModel(**role_data)
@@ -124,7 +125,7 @@ class UserTest(BaseTest):
 
         self.client.post("/api/register", json=self.admin_user)
 
-        admin_user = db.session.get(UserModel, 1 )
+        admin_user = db.session.get(UserModel, 1)
         admin_user.role = db.session.get(RoleModel, 1)
         db.session.commit()
 
