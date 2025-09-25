@@ -18,6 +18,6 @@ class UserModel(db.Model):
     birth_date = db.Column(db.Date, nullable=False)
     email = db.Column(db.String, nullable=True, unique=True)
     password = db.Column(db.String(100), nullable=False)
-    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False, default=2)
+    role_id = db.Column(db.Integer, db.ForeignKey('roles.id'), nullable=False, default=1)
 
     role = db.relationship('RoleModel', backref=db.backref('users', lazy=True))

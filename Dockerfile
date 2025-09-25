@@ -13,11 +13,13 @@ RUN apk add --no-cache gcc musl-dev libffi-dev postgresql-dev && \
 RUN adduser \
         --disabled-password \
         --no-create-home \
-        flask-user;\
-        chown -R flask-user:flask-user /app
+        flask-user; 
 
 COPY . /app
 
+RUN chmod +x /app/app/scripts/run &&\
+        chown -R flask-user:flask-user /app
+
 USER flask-user
 
-CMD [ "flask", "--app", "app", "run", "--host=0.0.0.0", "--debug"]
+CMD ["/app/app/scripts/run"]

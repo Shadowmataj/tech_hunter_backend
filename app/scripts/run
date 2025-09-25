@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+flask db upgrade
+flask --app app run --host=0.0.0.0 --debug

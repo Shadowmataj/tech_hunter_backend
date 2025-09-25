@@ -9,7 +9,12 @@ import sys
 
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
-from ..schemas import ProductOutputSchema, ProductInputSchema, PaginationProductsSchema
+from ..schemas import (
+    ProductOutputSchema, 
+    ProductInputSchema, 
+    PaginationProductsSchema, 
+    ProductPutSchema,
+    ProductsId)
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -58,42 +63,39 @@ class ProductOperations(MethodView):
         return product
 
     @jwt_required()
-    @blp.arguments(ProductInputSchema)
+    @blp.arguments(ProductPutSchema)
     @blp.response(200, ProductOutputSchema)
     def put(self, product_data, asin):
         """"""
         jwt = get_jwt()
         if not jwt.get("is_admin"):
             abort(401, message="Admin privilege required.")
-        product = ProductModel.query.filter_by(asin=asin).first()
 
-        if not product:
-            abort(404, message="Product not found")
+        with db.session.no_autoflush:
+            product = ProductModel.query.filter_by(
+                asin=asin).first()
 
-        product.price = product_data.price
-        product.url = product_data.url
-        product.title = product_data.title
-        product.brand = product_data.brand
-        product.model = product_data.model
-        product.saving_percentage = product_data.saving_percentage
-        product.basis_price = product_data.basis_price
-        product.custumers_opinion = product_data.custumers_opinion
-        product.ranking = product_data.ranking
+            if not product:
+                abort(404, message="Product not found")
 
-        if product_data.images:
-            for image in product_data.images:
-                db_image = ProductImage.query.filter_by(url=image.url)
-                if not db_image:
-                    product.images.append(image)
+            for column in ProductModel.__table__.columns.keys():
+                if column == "id":
+                    continue
+                if column in product_data:
+                    setattr(product, column, product_data[column])
+                else:
+                    setattr(product, column, None)
 
-        if product_data.twister:
-            for twister in product_data.twister:
-                db_twister = Twister.query.filter_by(
-                    asin=twister.asin, name=twister.name)
-                if not db_twister:
-                    product.twister.append(twister)
+            if product_data.get("images"):
+                product.images.clear()
+                for image in product_data["images"]:
+                    product.images.append(ProductImage(**image))
 
-        db.session.commit()
+            product.twister.clear()
+            if product_data.get("twister"):
+                for twister in product_data["twister"]:
+                    product.twister.append(Twister(**twister))
+                    db.session.commit()
         return product_data
 
     @jwt_required()
@@ -124,8 +126,8 @@ class ProductsList(MethodView):
         per_page = products_query.get("per_page")
         min_price = products_query.get("min_price")
         max_price = products_query.get("max_price")
-        sort_by = products_query.get("sort_by")  # campo por el que ordenar
-        sort_order = products_query.get("sort_order")  # 'asc' o 'desc'
+        sort_by = products_query.get("sort_by")
+        sort_order = products_query.get("sort_order")
 
         query = ProductModel.query.filter(ProductModel.price != 0)
 
@@ -146,6 +148,9 @@ class ProductsList(MethodView):
         pagination = query.paginate(
             page=page, per_page=per_page, error_out=True)
 
+        brands = db.session.execute(
+            db.select(ProductModel.brand).distinct()).scalars().all()
+
         return {
             "products": pagination.items,
             "page": pagination.page,
@@ -153,7 +158,8 @@ class ProductsList(MethodView):
             "total": pagination.total,
             "pages": pagination.pages,
             "has_next": pagination.has_next,
-            "has_prev": pagination.has_prev
+            "has_prev": pagination.has_prev,
+            "brands": brands
         }
 
     @jwt_required()
@@ -185,8 +191,8 @@ class ProductsList(MethodView):
 
         return {"message": "The products have been created.", "repeated_products": repeated_count}
 
-    # @jwt_required()
-    @blp.arguments(ProductInputSchema(many=True))
+    @jwt_required()
+    @blp.arguments(ProductPutSchema(many=True))
     def put(self, products_data):
         """Endpoint to update the products on data base."""
         jwt = get_jwt()
@@ -194,39 +200,40 @@ class ProductsList(MethodView):
             abort(401, message="Admin privilege required.")
 
         count_updated = 0
-        count_created = 0
+        to_create = []
 
         for data in products_data:
-            asin = data.asin
+            with db.session.no_autoflush:
+                product = ProductModel.query.filter_by(
+                    asin=data["asin"]).first()
 
-            product = ProductModel.query.filter_by(asin=asin).first()
-            count_updated += 1
+            if product:
+                count_updated += 1
+                for column in ProductModel.__table__.columns.keys():
+                    if column == "id":
+                        continue
+                    if column in data:
+                        setattr(product, column, data[column])
+                    else:
+                        setattr(product, column, None)
 
-            if not product:
-                count_updated -= 1
-                product = ProductModel(asin=asin)
-                db.session.add(product)
-                count_created += 1
+                if data.get("images"):
+                    product.images.clear()
+                    for image in data["images"]:
+                        product.images.append(ProductImage(**image))
 
-            product.price = data.price
-            product.url = data.url
-            product.title = data.title
-            product.brand = data.brand
-            product.model = data.model
-            product.saving_percentage = data.saving_percentage
-            product.basis_price = data.basis_price
-            product.custumers_opinion = data.custumers_opinion
-            product.ranking = data.ranking
-            product.images.clear()
-            product.images = data.images
-            product.twister.clear()
-            product.twister = data.twister
+                product.twister.clear()
+                if data.get("twister"):
+                    for twister in data["twister"]:
+                        product.twister.append(Twister(**twister))
+                        db.session.commit()
+            else:
+                to_create.append(data["asin"])
 
-            db.session.commit()
-
+        db.session.commit()
         return {
             "message": f"{count_updated} products updated successfully.",
-            "c_message": f"{count_created} products were created."
+            "to_create": to_create
         }
 
     @jwt_required()
@@ -253,3 +260,21 @@ class ProductsList(MethodView):
             print(f"Error deleting products: {e}", file=sys.stderr)
             db.session.rollback()
             abort(500, {"error": str(e)})
+
+
+@blp.route("/products/amazon/id")
+class ProductsIdList(MethodView):
+    """Class to get all the Products IDs"""
+
+    @jwt_required()
+    @blp.response(200, ProductsId)
+    def get(self):
+        """Endpoint to get all the IDs"""
+        jwt = get_jwt()
+        if not jwt.get("is_admin"):
+            abort(401, message="Admin privilege required.")
+
+        asins_list = db.session.execute(
+            db.select(ProductModel.asin)).scalars().all()
+        
+        return {"asins": asins_list}

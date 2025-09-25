@@ -17,10 +17,11 @@ class RoleSchema(SQLAlchemyAutoSchema):
         model = RoleModel
         load_instance = True
         sqla_session = db.session
-        unknown = EXCLUDE  
+        unknown = EXCLUDE
 
     id = fields.Int(dump_only=True)
     name = fields.Str(required=True)
+
 
 class UserSchema(SQLAlchemyAutoSchema):
     """User Schema"""
@@ -29,7 +30,7 @@ class UserSchema(SQLAlchemyAutoSchema):
         load_instance = True
         sqla_session = db.session
         include_fk = True
-        unknown = EXCLUDE  
+        unknown = EXCLUDE
 
     id = fields.Int(dump_only=True)
     first_name = fields.Str(required=False)
@@ -37,9 +38,8 @@ class UserSchema(SQLAlchemyAutoSchema):
     birth_date = fields.Date(required=False)
     email = fields.Str(required=True)
     password = fields.Str(required=True, load_only=True)
+
     role = fields.Nested(RoleSchema, dump_only=True, required=False)
-
-
 
 
 class UserRegisterSchema(SQLAlchemyAutoSchema):
@@ -49,7 +49,7 @@ class UserRegisterSchema(SQLAlchemyAutoSchema):
         load_instance = True
         sqla_session = db.session
         include_fk = True
-        nknown = EXCLUDE 
+        nknown = EXCLUDE
 
     id = fields.Int(dump_only=True)
     first_name = fields.Str(required=True)
@@ -57,8 +57,8 @@ class UserRegisterSchema(SQLAlchemyAutoSchema):
     birth_date = fields.Date(required=True)
     email = fields.Str(required=True)
     password = fields.Str(required=True, load_only=True)
-    role = fields.Nested(RoleSchema, dump_only=True, load_default=2)
-    
+    role = fields.Nested(RoleSchema, dump_only=True, load_default = 1)
+
     @post_load
     def hash_password(self, data, **kwargs):
         """Reemplaza password en texto plano con el hash antes de crear User"""
@@ -71,13 +71,22 @@ class ProductImageSchema(SQLAlchemyAutoSchema):
     class Meta:
         model = ProductImage
         load_instance = True
-        include_fk = True  
+        include_fk = True
         sqla_session = db.session
-        nknown = EXCLUDE  
+        nknown = EXCLUDE
 
     id = fields.Int(dump_only=True)
     url = fields.Str(required=True)
     product_id = fields.Int(dump_only=True)
+
+
+class ProductPutImageSchema(ProductImageSchema):
+    class Meta:
+        model = ProductImage
+        load_instance = False
+        include_fk = True
+        sqla_session = db.session
+        nknown = EXCLUDE
 
 
 class TwisterSchema(SQLAlchemyAutoSchema):
@@ -86,7 +95,7 @@ class TwisterSchema(SQLAlchemyAutoSchema):
         load_instance = True
         include_fk = True
         sqla_session = db.session
-        unknown = EXCLUDE 
+        unknown = EXCLUDE
 
     id = fields.Int(dump_only=True)
     type = fields.Str(required=True)
@@ -110,11 +119,22 @@ class TwisterSchema(SQLAlchemyAutoSchema):
                 data[key]["color"] = data["name"]
             del data["name"]
             del data["asin"]
-            del data["product_id"]
-            del data["id"]
+            if data.get("product_id"):
+                del data["product_id"]
+            if data.get("id"):
+                del data["id"]
         else:
             data = {}
         return data
+
+
+class TwisterPutSchema(TwisterSchema):
+    class Meta:
+        model = Twister
+        load_instance = False
+        include_fk = True
+        sqla_session = db.session
+        unknown = EXCLUDE
 
 
 class ProductInputSchema(SQLAlchemyAutoSchema):
@@ -140,6 +160,19 @@ class ProductInputSchema(SQLAlchemyAutoSchema):
 
     images = fields.List(fields.Nested(ProductImageSchema))
     twister = fields.List(fields.Nested(TwisterSchema))
+
+
+class ProductPutSchema(ProductInputSchema):
+    class Meta:
+        model = ProductModel
+        load_instance = False
+        include_relationships = True
+        include_fk = True
+        sqla_session = db.session
+        unknown = EXCLUDE
+
+    images = fields.List(fields.Nested(ProductPutImageSchema))
+    twister = fields.List(fields.Nested(TwisterPutSchema))
 
 
 class ProductOutputSchema(ProductInputSchema):
@@ -179,10 +212,12 @@ class ProductOutputSchema(ProductInputSchema):
                 continue
             simplified[key] = value
 
-        simplified["images"] = [image["url"] for image in simplified["images"]]
+        if simplified.get("images"):
+            simplified["images"] = [image["url"]
+                                    for image in simplified["images"]]
 
         temp_dict = {}
-        if simplified.get("twister"):      
+        if simplified.get("twister"):
             for twister in simplified["twister"]:
                 if not len(twister):
                     continue
@@ -208,10 +243,14 @@ class PaginationProductsSchema(Schema):
     per_page = fields.Int(load_default=10)
     min_price = fields.Float(load_only=True)
     max_price = fields.Float(load_only=True)
-    sort_by = fields.Str(load_default='ranking', load_only=True)  
-    sort_order = fields.Str(load_default='asc', load_only=True) 
+    sort_by = fields.Str(load_default='ranking', load_only=True)
+    sort_order = fields.Str(load_default='asc', load_only=True)
     total = fields.Integer(dump_only=True)
     pages = fields.Integer(dump_only=True)
     has_next = fields.Bool(dump_only=True)
     has_prev = fields.Bool(dump_only=True)
+    brands = fields.List(fields.String, dump_only=True)
 
+class ProductsId(Schema):
+
+    asins = fields.List(fields.String, dump_only=True)

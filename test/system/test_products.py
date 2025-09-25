@@ -42,25 +42,26 @@ class TestProducts(BaseTest):
             "title": "Test Product",
             "images": [{"url": "https://test.com/image.jpg"}],
             "price": 1,
+            "brand": "TEST_2"
         }
         roles = [
             {"id": 1, "name": "admin"},
             {"id": 2, "name": "user"}
         ]
         self.expected = {
-            'asin': 'TESTASIN123',
-                    'price': 100.0,
-                    'url': 'https://test.com', ''
-                    'title': 'Test Product',
-                    'brand': 'TEST',
-                    'model': 'Test Model',
-                    'saving_percentage': 1,
-                    'basis_price': 1.0,
-                    'custumers_opinion': '5 de 5 estrellas',
-                    'ranking': 1,
-                    'images': [
-                        'https://test.com/image.jpg'],
-                    'id': 1
+            "asin": "TESTASIN123",
+                    "price": 100.0,
+                    "url": "https://test.com", ""
+                    "title": "Test Product",
+                    "brand": "TEST",
+                    "model": "Test Model",
+                    "saving_percentage": 1,
+                    "basis_price": 1.0,
+                    "custumers_opinion": "5 de 5 estrellas",
+                    "ranking": 1,
+                    "images": [
+                        "https://test.com/image.jpg"],
+                    "id": 1
         }
 
         for role_data in roles:
@@ -162,6 +163,203 @@ class TestProducts(BaseTest):
         self.assertEqual(response.json["pages"], 1)
         self.assertEqual(response.json["per_page"], 10)
         self.assertEqual(response.json["total"], 2)
+        self.assertListEqual(response.json["brands"], ["TEST_2", "TEST"])
+
+    def test_put_product(self):
+        """"""
+        products = [self.first_test_product,
+                    self.second_test_product, self.second_test_product]
+
+        updated_product = {
+            "asin": "TESTASIN123",
+            "price": 1000,
+            "url": "https://test_updated.com.mx",
+            "images": [
+                {"url": "https://test_updated.com/image.jpg"},
+                {"url": "https://test_second_updated.com/image.jpg"},
+            ],
+            "title": "Test Product Updated",
+            "twister": [
+                {
+                    "type": "color_name",
+                    "asin": "TESTASIN1234",
+                    "name": "Second test Color"
+                },
+                {
+                    "type": "style_name",
+                    "asin": "TESTASIN1234",
+                    "name": "Test Style"
+                }
+
+            ],
+            "brand": "TEST_UPDATED",
+            "model": "Test Model Update",
+            "color": "Test Color Update",
+            "custumers_opinion": "0 de 5 estrellas",
+            "ranking": 2
+        }
+
+        expected = {
+            "asin": "TESTASIN123",
+            "brand": "TEST_UPDATED",
+            "custumers_opinion": "0 de 5 estrellas",
+            "id": 1,
+            "images": [
+                "https://test_updated.com/image.jpg",
+                "https://test_second_updated.com/image.jpg"
+            ],
+            "model": "Test Model Update",
+            "price": 1000.0, "ranking": 2,
+            "title": "Test Product Updated",
+            "twister": {
+                "color_name": {
+                    "product_TESTASIN1234": {
+                        "asin": "TESTASIN1234",
+                        "color": "Second test Color",
+                        "image": "https://test.com/image.jpg",
+                        "price": 1.0,
+                        "title": "Test Product",
+                        "url": "https://test.com"
+                    }},
+                "style_name": {
+                    "product_TESTASIN1234": {
+                        "asin": "TESTASIN1234",
+                        "image": "https://test.com/image.jpg",
+                        "price": 1.0,
+                        "title": "Test Product",
+                        "url": "https://test.com"
+                    }}},
+            "url": "https://test_updated.com.mx"
+        }
+
+        self.client.post(
+            "/api/products/amazon",
+            json=products,
+            headers={
+                "Authorization": f"Bearer {self.access_token}"})
+
+        put_response = self.client.put(
+            f"/api/product/amazon/{self.first_test_product["asin"]}",
+            json=updated_product,
+            headers={
+                "Authorization": f"Bearer {self.access_token}"})
+
+        self.assertEqual(put_response.status_code, 200)
+
+        response = self.client.get(
+            f"/api/product/amazon/{self.first_test_product["asin"]}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json, expected)
+
+    def test_put_products(self):
+        """"""
+        products = [self.first_test_product,
+                    self.second_test_product]
+
+        updated_products = [{
+            "asin": "TESTASIN123",
+            "price": 1000,
+            "url": "https://test_updated.com.mx",
+            "images": [
+                {"url": "https://test_updated.com/image.jpg"},
+                {"url": "https://test_second_updated.com/image.jpg"},
+            ],
+            "title": "Test Product Updated",
+            "twister": [
+                {
+                    "type": "color_name",
+                    "asin": "TESTASIN1234",
+                    "name": "Second test Color"
+                },
+                {
+                    "type": "style_name",
+                    "asin": "TESTASIN1234",
+                    "name": "Test Style"
+                }
+            ],
+            "brand": "TEST_UPDATED",
+            "model": "Test Model Update",
+            "color": "Test Color Update",
+            "custumers_opinion": "0 de 5 estrellas",
+            "ranking": 2
+        },
+            {
+            "asin": "TESTASIN1234",
+            "url": "https://test_second_updated.com",
+            "title": "Test Second Product Update",
+            "images": [{"url": "https://test_second.com/image.jpg"}],
+            "price": 10,
+        },
+            {
+            "asin": "TESTASIN12345",
+            "url": "https://test_third.com",
+            "title": "Test Third Product",
+            "images": [{"url": "https://test_third.com/image.jpg"}],
+            "price": 1,
+        }
+        ]
+
+        expected = {
+            "asin": "TESTASIN123",
+            "brand": "TEST_UPDATED",
+            "custumers_opinion": "0 de 5 estrellas",
+            "id": 1,
+            "images": [
+                "https://test_updated.com/image.jpg",
+                "https://test_second_updated.com/image.jpg"
+            ],
+            "model": "Test Model Update",
+            "price": 1000.0,
+            "ranking": 2,
+            "title": "Test Product Updated",
+            "twister": {
+                "color_name": {
+                    "product_TESTASIN1234": {
+                        "asin": "TESTASIN1234",
+                        "color": "Second test Color",
+                        "image": "https://test_second.com/image.jpg",
+                        "price": 10,
+                        "title": "Test Second Product Update",
+                        "url": "https://test_second_updated.com",
+                    }},
+                "style_name": {
+                    "product_TESTASIN1234": {
+                        "asin": "TESTASIN1234",
+                        "image": "https://test_second.com/image.jpg",
+                        "price": 10,
+                        "title": "Test Second Product Update",
+                        "url": "https://test_second_updated.com",
+                    }}},
+            "url": "https://test_updated.com.mx"
+        }
+
+        self.client.post(
+            "/api/products/amazon",
+            json=products,
+            headers={
+                "Authorization": f"Bearer {self.access_token}"})
+
+        response = self.client.put(
+            f"/api/products/amazon",
+            json=updated_products,
+            headers={
+                "Authorization": f"Bearer {self.access_token}"})
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.json["message"],
+            "2 products updated successfully.")
+        self.assertEqual(
+            len(response.json["to_create"]),
+            1)
+
+        response = self.client.get(
+            f"/api/product/amazon/{self.first_test_product["asin"]}")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(expected, response.json)
 
     def test_delete_product(self):
         """"""
@@ -199,4 +397,26 @@ class TestProducts(BaseTest):
         )
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json["message"], "2 products have been deleted.")
+        self.assertEqual(
+            response.json["message"],
+            "2 products have been deleted.")
+
+    def test_get_products_ids(self):
+        """"""
+        products = [self.first_test_product, self.second_test_product]
+        self.client.post(
+            "/api/products/amazon",
+            json=products,
+            headers={
+                "Authorization": f"Bearer {self.access_token}"})
+
+        response = self.client.get(
+            "/api/products/amazon/id",
+            headers={
+                "Authorization": f"Bearer {self.access_token}"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(
+            response.json["asins"],
+            [product["asin"] for product in products])

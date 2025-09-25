@@ -1,7 +1,7 @@
 flask
 flask-smorest
-sqlalchemy
-Flask-SQLAlchemy
+SQLAlchemy>=2.0
+Flask-SQLAlchemy>=3.0
 flask-jwt-extended
 passlib
 psycopg2
@@ -10,3 +10,4 @@ python-dotenv
 flask-cors
 flask
 flask-migrate
+gunicorn

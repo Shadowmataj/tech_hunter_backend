@@ -27,8 +27,8 @@ class UserTest(BaseTest):
         }
 
         roles = [
-            {"id": 1, "name": "admin"},
-            {"id": 2, "name": "user"}
+            {"id": 0, "name": "admin"},
+            {"id": 1, "name": "user"}
         ]
         for role_data in roles:
             role = RoleModel(**role_data)
@@ -126,7 +126,7 @@ class UserTest(BaseTest):
         self.client.post("/api/register", json=self.admin_user)
 
         admin_user = db.session.get(UserModel, 1)
-        admin_user.role = db.session.get(RoleModel, 1)
+        admin_user.role = db.session.get(RoleModel, 0)
         db.session.commit()
 
         login_response = self.client.post("/api/login", json={
@@ -152,7 +152,7 @@ class UserTest(BaseTest):
         self.client.post("/api/register", json=self.test_user)
 
         admin_user = db.session.get(UserModel, 1 )
-        admin_user.role = db.session.get(RoleModel, 1)
+        admin_user.role = db.session.get(RoleModel, 0)
         db.session.commit()
 
         login_response = self.client.post("/api/login", json={

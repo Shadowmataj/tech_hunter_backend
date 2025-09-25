@@ -21,8 +21,8 @@ class UserTest(BaseTest):
             "password": "123456",
         }
         roles = [
-            {"id": 1, "name": "admin"},
-            {"id": 2, "name": "user"}
+            {"id": 0, "name": "admin"},
+            {"id": 1, "name": "user"}
         ]
         for role_data in roles:
             role = RoleModel(**role_data)
