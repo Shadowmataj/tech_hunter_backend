@@ -249,8 +249,9 @@ class PaginationProductsSchema(Schema):
     pages = fields.Integer(dump_only=True)
     has_next = fields.Bool(dump_only=True)
     has_prev = fields.Bool(dump_only=True)
-    brands = fields.List(fields.String, dump_only=True)
+    brands = fields.List(fields.String, load_default=[])
 
-class ProductsId(Schema):
+class ProductsColumns(Schema):
 
     asins = fields.List(fields.String, dump_only=True)
+    brands = fields.List(fields.String, dump_only=True)

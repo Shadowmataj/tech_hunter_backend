@@ -14,7 +14,7 @@ from ..schemas import (
     ProductInputSchema, 
     PaginationProductsSchema, 
     ProductPutSchema,
-    ProductsId)
+    ProductsColumns)
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -128,6 +128,7 @@ class ProductsList(MethodView):
         max_price = products_query.get("max_price")
         sort_by = products_query.get("sort_by")
         sort_order = products_query.get("sort_order")
+        brands = products_query.get("brands")
 
         query = ProductModel.query.filter(ProductModel.price != 0)
 
@@ -136,6 +137,10 @@ class ProductsList(MethodView):
             query = query.filter(ProductModel.price >= min_price)
         if max_price is not None:
             query = query.filter(ProductModel.price <= max_price)
+
+        # Brand
+        if len(brands):
+            query = query.filter(ProductModel.brand.in_(brands))
 
         # Order
         if hasattr(ProductModel, sort_by):
@@ -267,7 +272,7 @@ class ProductsIdList(MethodView):
     """Class to get all the Products IDs"""
 
     @jwt_required()
-    @blp.response(200, ProductsId)
+    @blp.response(200, ProductsColumns)
     def get(self):
         """Endpoint to get all the IDs"""
         jwt = get_jwt()
@@ -278,3 +283,22 @@ class ProductsIdList(MethodView):
             db.select(ProductModel.asin)).scalars().all()
         
         return {"asins": asins_list}
+    
+@blp.route("/brands/amazon")
+class ProductBrandsList(MethodView):
+    """Class to get all the Products brands"""
+
+    @jwt_required()
+    @blp.response(200, ProductsColumns)
+    def get(self):
+        """Endpoint to get all the brands on database."""
+
+        jwt = get_jwt()
+        if not jwt.get("is_admin"):
+            abort(401, message="Admin privilege required.")
+
+        brands_list = db.session.execute(
+            db.select(ProductModel.brand).distinct()
+        ).scalars().all()
+
+        return {"brands": brands_list}

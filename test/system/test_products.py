@@ -144,7 +144,6 @@ class TestProducts(BaseTest):
         """"""
         products = [self.first_test_product,
                     self.second_test_product, self.second_test_product]
-
         self.client.post(
             "/api/products/amazon",
             json=products,
@@ -162,6 +161,44 @@ class TestProducts(BaseTest):
         self.assertEqual(response.json["page"], 1)
         self.assertEqual(response.json["pages"], 1)
         self.assertEqual(response.json["per_page"], 10)
+        self.assertEqual(response.json["total"], 2)
+        self.assertListEqual(response.json["brands"], ["TEST_2", "TEST"])
+
+    def test_get_products_query(self):
+        """"""
+        products = [self.first_test_product,
+                    self.second_test_product, self.second_test_product]
+        query = {
+            "page": 2,
+            "per_page": 1,
+            "min_price": 0,
+            "max_price": 100,
+            "sort_by": "price",
+            "sort order": "desc",
+            "brands": [
+                self.first_test_product["brand"],
+                self.second_test_product["brand"]
+            ]
+        }
+
+        self.client.post(
+            "/api/products/amazon",
+            json=products,
+            headers={
+                "Authorization": f"Bearer {self.access_token}"})
+
+        response = self.client.get(
+            f"/api/products/amazon",
+            query_string = query
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json["products"]), 1)
+        self.assertEqual(response.json["has_next"], False)
+        self.assertEqual(response.json["has_prev"], True)
+        self.assertEqual(response.json["page"], 2)
+        self.assertEqual(response.json["pages"], 2)
+        self.assertEqual(response.json["per_page"], 1)
         self.assertEqual(response.json["total"], 2)
         self.assertListEqual(response.json["brands"], ["TEST_2", "TEST"])
 
@@ -420,3 +457,23 @@ class TestProducts(BaseTest):
         self.assertListEqual(
             response.json["asins"],
             [product["asin"] for product in products])
+
+    def test_get_brands(self):
+        """"""
+        products = [self.first_test_product, self.second_test_product]
+        self.client.post(
+            "/api/products/amazon",
+            json=products,
+            headers={
+                "Authorization": f"Bearer {self.access_token}"})
+
+        response = self.client.get(
+            "/api/brands/amazon",
+            headers={
+                "Authorization": f"Bearer {self.access_token}"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertListEqual(
+            response.json["brands"],
+            [ product["brand"] for product in products[::-1]])
