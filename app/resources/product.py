@@ -10,9 +10,9 @@ import sys
 from flask.views import MethodView
 from flask_smorest import Blueprint, abort
 from ..schemas import (
-    ProductOutputSchema, 
-    ProductInputSchema, 
-    PaginationProductsSchema, 
+    ProductOutputSchema,
+    ProductInputSchema,
+    PaginationProductsSchema,
     ProductPutSchema,
     ProductsColumns)
 from sqlalchemy import asc, desc
@@ -66,7 +66,7 @@ class ProductOperations(MethodView):
     @blp.arguments(ProductPutSchema)
     @blp.response(200, ProductOutputSchema)
     def put(self, product_data, asin):
-        """"""
+        """Endpoint to update a product using the asin."""
         jwt = get_jwt()
         if not jwt.get("is_admin"):
             abort(401, message="Admin privilege required.")
@@ -250,7 +250,10 @@ class ProductsList(MethodView):
             abort(401, message="Admin privilege required.")
         try:
             # Delete all records in ProductModel
-            products = ProductModel.query.all()
+            products = (db.session.execute(
+                db.select(ProductModel)
+            ).scalars()
+            .all())
             count = 0
 
             for product in products:
@@ -281,9 +284,10 @@ class ProductsIdList(MethodView):
 
         asins_list = db.session.execute(
             db.select(ProductModel.asin)).scalars().all()
-        
+
         return {"asins": asins_list}
-    
+
+
 @blp.route("/brands/amazon")
 class ProductBrandsList(MethodView):
     """Class to get all the Products brands"""

@@ -80,7 +80,7 @@ class TestProducts(BaseTest):
         self.access_token = login_response.json["access_token"]
 
     def test_post_product(self):
-        """"""
+        """Test for product creation endpoint."""
 
         response = self.client.post(
             "/api/product/amazon",
@@ -92,7 +92,7 @@ class TestProducts(BaseTest):
         self.assertDictEqual(response.json, self.expected)
 
     def test_post_products(self):
-        """"""
+        """Test for products creation endpoint."""
         products = [self.first_test_product,
                     self.second_test_product, self.second_test_product]
 
@@ -110,7 +110,7 @@ class TestProducts(BaseTest):
         self.assertEqual(response.json["repeated_products"], 1)
 
     def test_post_duplicated_product(self):
-        """"""
+        """Test for posting a duplicated product."""
         for _ in range(2):
             response = self.client.post(
                 "/api/product/amazon",
@@ -125,7 +125,7 @@ class TestProducts(BaseTest):
         self.assertEqual(response.json["status"], "Conflict")
 
     def test_get_product(self):
-        """"""
+        """Test for getting a product by its ASIN."""
 
         self.client.post(
             "/api/product/amazon",
@@ -141,7 +141,7 @@ class TestProducts(BaseTest):
         self.assertEqual(response.json, self.expected)
 
     def test_get_products(self):
-        """"""
+        """Test for getting all products."""
         products = [self.first_test_product,
                     self.second_test_product, self.second_test_product]
         self.client.post(
@@ -165,7 +165,7 @@ class TestProducts(BaseTest):
         self.assertListEqual(response.json["brands"], ["TEST_2", "TEST"])
 
     def test_get_products_query(self):
-        """"""
+        """Test for getting products with query parameters."""
         products = [self.first_test_product,
                     self.second_test_product, self.second_test_product]
         query = {
@@ -203,7 +203,7 @@ class TestProducts(BaseTest):
         self.assertListEqual(response.json["brands"], ["TEST_2", "TEST"])
 
     def test_put_product(self):
-        """"""
+        """Test for updating a product."""
         products = [self.first_test_product,
                     self.second_test_product, self.second_test_product]
 
@@ -291,7 +291,7 @@ class TestProducts(BaseTest):
         self.assertDictEqual(response.json, expected)
 
     def test_put_products(self):
-        """"""
+        """Test for updating multiple products."""
         products = [self.first_test_product,
                     self.second_test_product]
 
@@ -399,7 +399,7 @@ class TestProducts(BaseTest):
         self.assertDictEqual(expected, response.json)
 
     def test_delete_product(self):
-        """"""
+        """Test for deleting a product."""
         self.client.post(
             "/api/product/amazon",
             json=self.first_test_product,
@@ -418,7 +418,7 @@ class TestProducts(BaseTest):
             "The product has been deleted.")
 
     def test_delete_all_products(self):
-        """"""
+        """Test for deleting all products."""
         products = [self.first_test_product, self.second_test_product]
 
         self.client.post(
@@ -439,7 +439,7 @@ class TestProducts(BaseTest):
             "2 products have been deleted.")
 
     def test_get_products_ids(self):
-        """"""
+        """Test for getting all product IDs."""
         products = [self.first_test_product, self.second_test_product]
         self.client.post(
             "/api/products/amazon",
@@ -459,7 +459,7 @@ class TestProducts(BaseTest):
             [product["asin"] for product in products])
 
     def test_get_brands(self):
-        """"""
+        """Test for getting all product brands."""
         products = [self.first_test_product, self.second_test_product]
         self.client.post(
             "/api/products/amazon",
