@@ -21,9 +21,9 @@ from flask_jwt_extended import (
 )
 
 from ..extensions import db
-
 from ..models import UserModel
 from ..schemas import UserSchema, UserRegisterSchema
+from ..utils.auth import role_filter
 
 blp = Blueprint("users", __name__,
                 description="Operations on tags", url_prefix="/api")
@@ -62,7 +62,7 @@ class UserLogin(MethodView):
                 identity=str(user.id),
                 fresh=True,
                 expires_delta=datetime.timedelta(minutes=60),
-                additional_claims={"is_admin": user.role.name == "admin"})
+                additional_claims={"role": user.role.name})
             refresh_token = create_refresh_token(identity=str(
                 user.id), expires_delta=datetime.timedelta(weeks=1))
             return {"access_token": access_token, "refresh_token": refresh_token}
@@ -77,7 +77,12 @@ class RefreshToken(MethodView):
     def post(self):
         """Endpoint to handle token refresh."""
         current_user = get_jwt_identity()
-        new_token = create_access_token(identity=current_user, fresh=False)
+        new_token = create_access_token(
+            identity=current_user,
+            fresh=False,
+            additional_claims={
+                "role": get_jwt().get("role")
+            })
         return {"access_token": new_token}
 
 
@@ -97,24 +102,20 @@ class UserLogout(MethodView):
 class User(MethodView):
     """Class to handle the get and delete user by id."""
 
-    @jwt_required()
     @blp.response(200, UserSchema)
+    @role_filter(["admin"])
     def get(self, user_id):
         """Endpoint to get a specific user by the id."""
-        jwt = get_jwt()
-        if not jwt.get("is_admin"):
-            abort(401, message="Admin privilege required.")
         user = db.session.get(UserModel, user_id)
         if not user:
             abort(404, message="User not found.")
         return user
 
     @jwt_required()
+    @role_filter(["admin"])
     def delete(self, user_id):
         """Endpoint to delete a specific user by the id."""
-        jwt = get_jwt()
-        if not jwt.get("is_admin"):
-            abort(401, message="Admin privilege required.")
+
         user = db.session.get(UserModel, user_id)
         if not user:
             abort(404, message="User not found.")

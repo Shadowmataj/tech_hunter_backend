@@ -20,25 +20,26 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from flask_jwt_extended import jwt_required, get_jwt
 
-from ..models.product import ProductModel, ProductImage, Twister
-
 from ..extensions import db
+from ..models.product import ProductModel, ProductImage, Twister
+from ..utils.auth import role_filter
 
-blp = Blueprint("products", __name__,
-                description="Operations on products.", url_prefix="/api")
+blp = Blueprint(
+    "products", __name__,
+    description="Operations on products.",
+    url_prefix="/api"
+)
 
 
 @blp.route("/product/amazon")
 class Product(MethodView):
 
-    @jwt_required()
     @blp.arguments(ProductInputSchema)
     @blp.response(201, ProductOutputSchema)
+    @role_filter(["admin"])
     def post(self, product_data: ProductModel):
         """Endpoint to post one product."""
-        jwt = get_jwt()
-        if not jwt.get("is_admin"):
-            abort(401, message="Admin privilege required.")
+
         if ProductModel.query.filter_by(asin=product_data.asin).first():
             abort(409, message="A product with that ASIN already exists.")
         try:
@@ -62,14 +63,11 @@ class ProductOperations(MethodView):
 
         return product
 
-    @jwt_required()
     @blp.arguments(ProductPutSchema)
     @blp.response(200, ProductOutputSchema)
+    @role_filter(["admin"])
     def put(self, product_data, asin):
         """Endpoint to update a product using the asin."""
-        jwt = get_jwt()
-        if not jwt.get("is_admin"):
-            abort(401, message="Admin privilege required.")
 
         with db.session.no_autoflush:
             product = ProductModel.query.filter_by(
@@ -98,13 +96,11 @@ class ProductOperations(MethodView):
                     db.session.commit()
         return product_data
 
-    @jwt_required()
     @blp.response(200)
+    @role_filter(["admin"])
     def delete(self, asin):
         """Endpoint to delete a product using the asin."""
-        jwt = get_jwt()
-        if not jwt.get("is_admin"):
-            abort(401, message="Admin privilege required.")
+
         product = ProductModel.query.filter_by(asin=asin).first_or_404()
 
         db.session.delete(product)
@@ -167,14 +163,11 @@ class ProductsList(MethodView):
             "brands": brands
         }
 
-    @jwt_required()
     @blp.arguments(ProductInputSchema(many=True))
     @blp.response(201)
+    @role_filter(["admin"])
     def post(self, products_data: ProductModel):
         """Endpoint to post a list of products"""
-        jwt = get_jwt()
-        if not jwt.get("is_admin"):
-            abort(401, message="Admin privilege required.")
 
         new_products = []
         repeated_count = 0
@@ -190,19 +183,17 @@ class ProductsList(MethodView):
 
         try:
             db.session.commit()
-        except Exception as e:
-            print(f"Error adding product: {e}", file=sys.stderr)
+        except Exception:
             abort(500, message="An error occurred while inserting the product.")
 
         return {"message": "The products have been created.", "repeated_products": repeated_count}
 
     @jwt_required()
     @blp.arguments(ProductPutSchema(many=True))
+    @blp.response(200)
+    @role_filter(["admin"])
     def put(self, products_data):
         """Endpoint to update the products on data base."""
-        jwt = get_jwt()
-        if not jwt.get("is_admin"):
-            abort(401, message="Admin privilege required.")
 
         count_updated = 0
         to_create = []
@@ -241,19 +232,17 @@ class ProductsList(MethodView):
             "to_create": to_create
         }
 
-    @jwt_required()
     @blp.response(200)
+    @role_filter(["admin"])
     def delete(self):
         """Endpoint to delete ALL products."""
-        jwt = get_jwt()
-        if not jwt.get("is_admin"):
-            abort(401, message="Admin privilege required.")
+
         try:
             # Delete all records in ProductModel
             products = (db.session.execute(
                 db.select(ProductModel)
             ).scalars()
-            .all())
+                .all())
             count = 0
 
             for product in products:
@@ -274,13 +263,10 @@ class ProductsList(MethodView):
 class ProductsIdList(MethodView):
     """Class to get all the Products IDs"""
 
-    @jwt_required()
     @blp.response(200, ProductsColumns)
+    @role_filter(["admin"])
     def get(self):
         """Endpoint to get all the IDs"""
-        jwt = get_jwt()
-        if not jwt.get("is_admin"):
-            abort(401, message="Admin privilege required.")
 
         asins_list = db.session.execute(
             db.select(ProductModel.asin)).scalars().all()
@@ -292,14 +278,10 @@ class ProductsIdList(MethodView):
 class ProductBrandsList(MethodView):
     """Class to get all the Products brands"""
 
-    @jwt_required()
     @blp.response(200, ProductsColumns)
+    @role_filter(["admin"])
     def get(self):
         """Endpoint to get all the brands on database."""
-
-        jwt = get_jwt()
-        if not jwt.get("is_admin"):
-            abort(401, message="Admin privilege required.")
 
         brands_list = db.session.execute(
             db.select(ProductModel.brand).distinct()
