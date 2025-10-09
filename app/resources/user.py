@@ -64,7 +64,7 @@ class UserLogin(MethodView):
                 expires_delta=datetime.timedelta(minutes=60),
                 additional_claims={"role": user.role.name})
             refresh_token = create_refresh_token(identity=str(
-                user.id), expires_delta=datetime.timedelta(weeks=1))
+                user.id), expires_delta=datetime.timedelta(weeks=1), additional_claims={"role": user.role.name})
             return {"access_token": access_token, "refresh_token": refresh_token}
         abort(401, message="Invalid credentials.")
 
@@ -79,10 +79,9 @@ class RefreshToken(MethodView):
         current_user = get_jwt_identity()
         new_token = create_access_token(
             identity=current_user,
+            expires_delta=datetime.timedelta(weeks=1),
             fresh=False,
-            additional_claims={
-                "role": get_jwt().get("role")
-            })
+        )
         return {"access_token": new_token}
 
 

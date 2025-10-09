@@ -18,7 +18,9 @@ def role_filter(roles: list) -> callable:
         @jwt_required()
         def decorated(*args, **kwargs):
             claims = get_jwt()
-            if claims.get("role") not in roles:
+            if not claims.get("role"):
+                abort(401, message="Invalid token, login is required.")
+            elif claims["role"] not in roles:
                 abort(403, message="Admin privilege required.")
             return fn(*args, **kwargs)
         return decorated
