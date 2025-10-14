@@ -14,14 +14,13 @@ from ..schemas import (
     ProductInputSchema,
     PaginationProductsSchema,
     ProductPutSchema,
-    ProductsColumns)
+    ProductsColumns,
+    ProductPatchSchema)
 from sqlalchemy import asc, desc
 from sqlalchemy.exc import SQLAlchemyError
 
-from flask_jwt_extended import jwt_required, get_jwt
-
 from ..extensions import db
-from ..models.product import ProductModel, ProductImage, Twister
+from ..models.product import ProductModel, Twister
 from ..utils.auth import role_filter
 
 blp = Blueprint(
@@ -83,11 +82,6 @@ class ProductOperations(MethodView):
                     setattr(product, column, product_data[column])
                 else:
                     setattr(product, column, None)
-
-            if product_data.get("images"):
-                product.images.clear()
-                for image in product_data["images"]:
-                    product.images.append(ProductImage(**image))
 
             product.twister.clear()
             if product_data.get("twister"):
@@ -188,7 +182,6 @@ class ProductsList(MethodView):
 
         return {"message": "The products have been created.", "repeated_products": repeated_count}
 
-    @jwt_required()
     @blp.arguments(ProductPutSchema(many=True))
     @blp.response(200)
     @role_filter(["admin"])
@@ -213,11 +206,6 @@ class ProductsList(MethodView):
                     else:
                         setattr(product, column, None)
 
-                if data.get("images"):
-                    product.images.clear()
-                    for image in data["images"]:
-                        product.images.append(ProductImage(**image))
-
                 product.twister.clear()
                 if data.get("twister"):
                     for twister in data["twister"]:
@@ -230,6 +218,31 @@ class ProductsList(MethodView):
         return {
             "message": f"{count_updated} products updated successfully.",
             "to_create": to_create
+        }
+    
+    @blp.arguments(ProductPatchSchema(many=True))
+    @blp.response(200)
+    @role_filter(["admin"])
+    def patch(self, products_data):
+        """Endpoint to post or update a list of products"""
+        count_updated = 0
+
+        for data in products_data:
+            with db.session.no_autoflush:
+                product = ProductModel.query.filter_by(
+                    asin=data["asin"]).first()
+
+            if product:
+                count_updated += 1
+                for column in ProductModel.__table__.columns.keys():
+                    if column == "id":
+                        continue
+                    if column in data:
+                        setattr(product, column, data[column])
+
+        db.session.commit()
+        return {
+            "message": f"{count_updated} products updated successfully."
         }
 
     @blp.response(200)
@@ -262,7 +275,7 @@ class ProductsList(MethodView):
 @blp.route("/products/amazon/id")
 class ProductsIdList(MethodView):
     """Class to get all the Products IDs"""
-
+    
     @blp.response(200, ProductsColumns)
     @role_filter(["admin"])
     def get(self):

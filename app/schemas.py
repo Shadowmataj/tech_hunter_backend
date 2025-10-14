@@ -6,7 +6,7 @@ requests and the responses in our endpoints.
 from marshmallow import Schema, fields, EXCLUDE, post_dump, post_load
 from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 from .models.user import UserModel, RoleModel
-from .models.product import ProductModel, ProductImage, Twister
+from .models.product import ProductModel, Twister
 from passlib.hash import pbkdf2_sha256
 from .extensions import db
 
@@ -14,6 +14,7 @@ from .extensions import db
 class RoleSchema(SQLAlchemyAutoSchema):
     """Role Schema"""
     class Meta:
+        """Meta class for RoleSchema."""
         model = RoleModel
         load_instance = True
         sqla_session = db.session
@@ -26,6 +27,7 @@ class RoleSchema(SQLAlchemyAutoSchema):
 class UserSchema(SQLAlchemyAutoSchema):
     """User Schema"""
     class Meta:
+        """Meta class for UserSchema."""
         model = UserModel
         load_instance = True
         sqla_session = db.session
@@ -45,6 +47,7 @@ class UserSchema(SQLAlchemyAutoSchema):
 class UserRegisterSchema(SQLAlchemyAutoSchema):
     """User Register Schema"""
     class Meta:
+        """Meta class for SQLAlchemyAutoSchema."""
         model = UserModel
         load_instance = True
         sqla_session = db.session
@@ -67,30 +70,10 @@ class UserRegisterSchema(SQLAlchemyAutoSchema):
         return data
 
 
-class ProductImageSchema(SQLAlchemyAutoSchema):
-    class Meta:
-        model = ProductImage
-        load_instance = True
-        include_fk = True
-        sqla_session = db.session
-        nknown = EXCLUDE
-
-    id = fields.Int(dump_only=True)
-    url = fields.Str(required=True)
-    product_id = fields.Int(dump_only=True)
-
-
-class ProductPutImageSchema(ProductImageSchema):
-    class Meta:
-        model = ProductImage
-        load_instance = False
-        include_fk = True
-        sqla_session = db.session
-        nknown = EXCLUDE
-
-
 class TwisterSchema(SQLAlchemyAutoSchema):
+    """Schema for Twister model."""
     class Meta:
+        """Meta class for TwisterSchema."""
         model = Twister
         load_instance = True
         include_fk = True
@@ -105,6 +88,7 @@ class TwisterSchema(SQLAlchemyAutoSchema):
 
     @post_dump
     def add_product_info(self, data, **kwargs):
+        """Add product info to the twister data."""
         product = ProductModel.query.filter_by(asin=data["asin"]).first()
         if product and product.price != 0:
             key = f"product_{product.asin}"
@@ -112,7 +96,8 @@ class TwisterSchema(SQLAlchemyAutoSchema):
                 "asin": product.asin,
                 "title": product.title,
                 "price": product.price,
-                "image": product.images[0].url,
+                "image": product.image,
+                "alt": product.alt,
                 "url": product.url
             }
             if data["type"] == 'color_name':
@@ -129,7 +114,9 @@ class TwisterSchema(SQLAlchemyAutoSchema):
 
 
 class TwisterPutSchema(TwisterSchema):
+    """Schema for put requests."""
     class Meta:
+        """Meta class for TwisterPutSchema."""
         model = Twister
         load_instance = False
         include_fk = True
@@ -138,7 +125,9 @@ class TwisterPutSchema(TwisterSchema):
 
 
 class ProductInputSchema(SQLAlchemyAutoSchema):
+    """Schema for post requests."""
     class Meta:
+        """Meta class for ProductInputSchema."""
         model = ProductModel
         load_instance = True
         include_relationships = True
@@ -155,15 +144,18 @@ class ProductInputSchema(SQLAlchemyAutoSchema):
     color = fields.Str()
     saving_percentage = fields.Int()
     basis_price = fields.Float()
-    custumers_opinion = fields.Str()
+    customers_opinion = fields.Float()
     ranking = fields.Int(load_default=10000000)
+    image = fields.Str()
+    alt = fields.Str()
 
-    images = fields.List(fields.Nested(ProductImageSchema))
     twister = fields.List(fields.Nested(TwisterSchema))
 
 
 class ProductPutSchema(ProductInputSchema):
+    """Schema for put requests."""
     class Meta:
+        """Meta class for ProductPutSchema."""
         model = ProductModel
         load_instance = False
         include_relationships = True
@@ -171,23 +163,32 @@ class ProductPutSchema(ProductInputSchema):
         sqla_session = db.session
         unknown = EXCLUDE
 
-    images = fields.List(fields.Nested(ProductPutImageSchema))
     twister = fields.List(fields.Nested(TwisterPutSchema))
+
+
+class ProductPatchSchema(Schema):
+    """Schema for patch requests."""
+    asin = fields.Str(required=True)
+    price = fields.Float()
+    url = fields.Str()
+    title = fields.Str()
+    model = fields.Str()
+    basis_price = fields.Float()
+    customers_opinion = fields.Float()
+    ranking = fields.Int()
+    image = fields.Str()
+    alt = fields.Str()
 
 
 class ProductOutputSchema(ProductInputSchema):
 
-    images_examples = [
-        "string",
-        "string",
-        "string",
-    ]
     twister_example = {
         "type_name": {
             "product_asin": {
                 "asin": "string",
                         "color": "string",
                         "image": "string",
+                        "alt": "string",
                         "price": 0,
                         "title": "string",
                         "url": "string"
@@ -195,9 +196,6 @@ class ProductOutputSchema(ProductInputSchema):
         }
     }
 
-    images = fields.List(
-        fields.Nested(ProductImageSchema),
-        metadata={"example": images_examples})
     twister = fields.List(
         fields.Nested(TwisterSchema),
         metadata={"example": twister_example})
@@ -211,10 +209,6 @@ class ProductOutputSchema(ProductInputSchema):
             if not data[key]:
                 continue
             simplified[key] = value
-
-        if simplified.get("images"):
-            simplified["images"] = [image["url"]
-                                    for image in simplified["images"]]
 
         temp_dict = {}
         if simplified.get("twister"):

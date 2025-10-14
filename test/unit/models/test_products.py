@@ -18,7 +18,8 @@ class ProductTest(BaseTest):
             "asin": "TESTASIN123",
             "price": 100,
             "url": "https://test.com",
-            "images": [{"url": "https://test.com/image.jpg"}],
+            "image": "https://test.com/image.jpg",
+            "alt": "Test Product",
             "title": "Test Product",
             "twister": [{
                     "type": "color_name",
@@ -27,16 +28,16 @@ class ProductTest(BaseTest):
             "brand": "TEST",
             "model": "Test Model",
             "color": "Test Color",
-            "saving_percentage": 1,
             "basis_price": 1,
-            "custumers_opinion": "5 de 5 estrellas",
+            "customers_opinion": 5,
             "ranking": 1
         }
         self.second_test_product = {
             "asin": "TESTASIN1234",
             "url": "https://test.com",
             "title": "Test Product",
-            "images": [{"url": "https://test.com/image.jpg"}],
+            "image": "https://test.com/image.jpg",
+            "alt": "Test Product",
             "price": 1,
         }
         self.test_products_list = [
@@ -59,30 +60,32 @@ class ProductTest(BaseTest):
         """Test retrieving a product and its serialization."""
 
         expected = {
+            'alt': 'Test Product',
             'asin': 'TESTASIN123',
-                    'price': 100.0,
-                    'url': 'https://test.com', ''
-                    'title': 'Test Product',
-                    'brand': 'TEST',
-                    'model': 'Test Model',
-                    'saving_percentage': 1,
-                    'basis_price': 1.0,
-                    'custumers_opinion': '5 de 5 estrellas',
-                    'ranking': 1,
-                    'images': [
-                        'https://test.com/image.jpg'],
-                    'twister': {
-                        'color_name': {
-                            'product_TESTASIN1234': {
-                                'asin': 'TESTASIN1234',
-                                'title': 'Test Product',
-                                'price': 1.0,
-                                'image': 'https://test.com/image.jpg',
-                                'url': 'https://test.com', 'color': 'Test Color'}}},
-                    'id': 1
+            'price': 100.0,
+            'url': 'https://test.com',
+            'title': 'Test Product',
+            'brand': 'TEST',
+            'model': 'Test Model',
+            'basis_price': 1.0,
+            'customers_opinion': 5.0,
+            'ranking': 1,
+            'image': 'https://test.com/image.jpg',
+            'twister': {
+                'color_name': {
+                    'product_TESTASIN1234': {
+                        'alt': 'Test Product',
+                        'asin': 'TESTASIN1234',
+                        'title': 'Test Product',
+                        'price': 1.0,
+                        'image': 'https://test.com/image.jpg',
+                        'url': 'https://test.com',
+                        'color': 'Test Color'}}},
+            'id': 1
         }
 
         new_product = self.schema_in.load(self.second_test_product)
+
         db.session.add(new_product)
         db.session.commit()
 
@@ -100,7 +103,8 @@ class ProductTest(BaseTest):
         self.assertEqual(product.price, 100)
 
         update_data = {"price": 50}
-        updated_product = self.schema_in.load(update_data, instance=product, partial=True)
+        updated_product = self.schema_in.load(
+            update_data, instance=product, partial=True)
         db.session.add(updated_product)
         db.session.commit()
 

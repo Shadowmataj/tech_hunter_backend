@@ -22,7 +22,8 @@ class TestProducts(BaseTest):
             "asin": "TESTASIN123",
             "price": 100,
             "url": "https://test.com",
-            "images": [{"url": "https://test.com/image.jpg"}],
+            "image": "https://test.com/image.jpg",
+            "alt": "Test Product",
             "title": "Test Product",
             "twister": [{
                     "type": "color_name",
@@ -31,38 +32,23 @@ class TestProducts(BaseTest):
             "brand": "TEST",
             "model": "Test Model",
             "color": "Test Color",
-            "saving_percentage": 1,
             "basis_price": 1,
-            "custumers_opinion": "5 de 5 estrellas",
+            "customers_opinion": 5,
             "ranking": 1
         }
         self.second_test_product = {
             "asin": "TESTASIN1234",
-            "url": "https://test.com",
-            "title": "Test Product",
-            "images": [{"url": "https://test.com/image.jpg"}],
-            "price": 1,
+            "url": "https://test_second_updated.com",
+            "title": "Test Second Product Update",
+            "image": "https://test_second.com/image.jpg",
+            "alt": "Test Second Product Update",
+            "price": 10,
             "brand": "TEST_2"
         }
         roles = [
             {"id": 1, "name": "admin"},
             {"id": 2, "name": "user"}
         ]
-        self.expected = {
-            "asin": "TESTASIN123",
-                    "price": 100.0,
-                    "url": "https://test.com", ""
-                    "title": "Test Product",
-                    "brand": "TEST",
-                    "model": "Test Model",
-                    "saving_percentage": 1,
-                    "basis_price": 1.0,
-                    "custumers_opinion": "5 de 5 estrellas",
-                    "ranking": 1,
-                    "images": [
-                        "https://test.com/image.jpg"],
-                    "id": 1
-        }
 
         for role_data in roles:
             role = RoleModel(**role_data)
@@ -81,6 +67,20 @@ class TestProducts(BaseTest):
 
     def test_post_product(self):
         """Test for product creation endpoint."""
+        expected = {
+            "asin": "TESTASIN123",
+            "price": 100.0,
+            "url": "https://test.com",
+            "title": "Test Product",
+            "brand": "TEST",
+            "model": "Test Model",
+            "basis_price": 1.0,
+            "customers_opinion": 5.0,
+            "ranking": 1,
+            "image": "https://test.com/image.jpg",
+            "alt": "Test Product",
+            "id": 1
+        }
 
         response = self.client.post(
             "/api/product/amazon",
@@ -89,7 +89,7 @@ class TestProducts(BaseTest):
                 "Authorization": f"Bearer {self.access_token}"})
 
         self.assertEqual(response.status_code, 201)
-        self.assertDictEqual(response.json, self.expected)
+        self.assertDictEqual(response.json, expected)
 
     def test_post_products(self):
         """Test for products creation endpoint."""
@@ -126,7 +126,20 @@ class TestProducts(BaseTest):
 
     def test_get_product(self):
         """Test for getting a product by its ASIN."""
-
+        expected = {
+            'alt': 'Test Product',
+            'asin': 'TESTASIN123',
+            'basis_price': 1.0,
+            'brand': 'TEST',
+            'customers_opinion': 5.0,
+            'id': 1,
+            'image': 'https://test.com/image.jpg',
+            'model': 'Test Model',
+            'price': 100.0,
+            'ranking': 1,
+            'title': 'Test Product',
+            'url': 'https://test.com'
+        }
         self.client.post(
             "/api/product/amazon",
             json=self.first_test_product,
@@ -136,9 +149,8 @@ class TestProducts(BaseTest):
         response = self.client.get(
             f"/api/product/amazon/{self.first_test_product["asin"]}"
         )
-
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json, self.expected)
+        self.assertEqual(response.json, expected)
 
     def test_get_products(self):
         """Test for getting all products."""
@@ -189,7 +201,7 @@ class TestProducts(BaseTest):
 
         response = self.client.get(
             f"/api/products/amazon",
-            query_string = query
+            query_string=query
         )
 
         self.assertEqual(response.status_code, 200)
@@ -211,10 +223,8 @@ class TestProducts(BaseTest):
             "asin": "TESTASIN123",
             "price": 1000,
             "url": "https://test_updated.com.mx",
-            "images": [
-                {"url": "https://test_updated.com/image.jpg"},
-                {"url": "https://test_second_updated.com/image.jpg"},
-            ],
+            "image": "https://test_updated.com/image.jpg",
+            "alt": "Test Product Updated",
             "title": "Test Product Updated",
             "twister": [
                 {
@@ -232,43 +242,45 @@ class TestProducts(BaseTest):
             "brand": "TEST_UPDATED",
             "model": "Test Model Update",
             "color": "Test Color Update",
-            "custumers_opinion": "0 de 5 estrellas",
+            "customers_opinion": 0,
             "ranking": 2
         }
 
         expected = {
-            "asin": "TESTASIN123",
-            "brand": "TEST_UPDATED",
-            "custumers_opinion": "0 de 5 estrellas",
-            "id": 1,
-            "images": [
-                "https://test_updated.com/image.jpg",
-                "https://test_second_updated.com/image.jpg"
-            ],
-            "model": "Test Model Update",
-            "price": 1000.0, "ranking": 2,
-            "title": "Test Product Updated",
-            "twister": {
-                "color_name": {
-                    "product_TESTASIN1234": {
-                        "asin": "TESTASIN1234",
-                        "color": "Second test Color",
-                        "image": "https://test.com/image.jpg",
-                        "price": 1.0,
-                        "title": "Test Product",
-                        "url": "https://test.com"
-                    }},
-                "style_name": {
-                    "product_TESTASIN1234": {
-                        "asin": "TESTASIN1234",
-                        "image": "https://test.com/image.jpg",
-                        "price": 1.0,
-                        "title": "Test Product",
-                        "url": "https://test.com"
-                    }}},
-            "url": "https://test_updated.com.mx"
+            'alt': 'Test Product Updated',
+            'asin': 'TESTASIN123',
+            'brand': 'TEST_UPDATED',
+            'id': 1,
+            'image': 'https://test_updated.com/image.jpg',
+            'model': 'Test Model Update',
+            'price': 1000.0,
+            'ranking': 2,
+            'title': 'Test Product Updated',
+            'twister': {
+                'color_name': {
+                    'product_TESTASIN1234': {
+                        'alt': 'Test Second Product Update',
+                        'asin': 'TESTASIN1234',
+                        'color': 'Second test Color',
+                        'image': 'https://test_second.com/image.jpg',
+                        'price': 10.0,
+                        'title': 'Test Second Product Update',
+                        'url': 'https://test_second_updated.com'
+                    }
+                },
+                'style_name': {
+                    'product_TESTASIN1234': {
+                        'alt': 'Test Second Product Update',
+                        'asin': 'TESTASIN1234',
+                        'image': 'https://test_second.com/image.jpg',
+                        'price': 10.0,
+                        'title': 'Test Second Product Update',
+                        'url': 'https://test_second_updated.com'
+                    }
+                }
+            },
+            'url': 'https://test_updated.com.mx'
         }
-
         self.client.post(
             "/api/products/amazon",
             json=products,
@@ -296,13 +308,11 @@ class TestProducts(BaseTest):
                     self.second_test_product]
 
         updated_products = [{
+            "alt": "Test Product Updated",
             "asin": "TESTASIN123",
             "price": 1000,
             "url": "https://test_updated.com.mx",
-            "images": [
-                {"url": "https://test_updated.com/image.jpg"},
-                {"url": "https://test_second_updated.com/image.jpg"},
-            ],
+            "image": "https://test_updated.com/image.jpg",
             "title": "Test Product Updated",
             "twister": [
                 {
@@ -319,59 +329,62 @@ class TestProducts(BaseTest):
             "brand": "TEST_UPDATED",
             "model": "Test Model Update",
             "color": "Test Color Update",
-            "custumers_opinion": "0 de 5 estrellas",
+            "customers_opinion": 0,
             "ranking": 2
         },
             {
+            "alt": "Test Second Product Update",
             "asin": "TESTASIN1234",
             "url": "https://test_second_updated.com",
             "title": "Test Second Product Update",
-            "images": [{"url": "https://test_second.com/image.jpg"}],
+            "image": "https://test_second.com/image.jpg",
             "price": 10,
         },
             {
+            "alt": "Test Third Product",
             "asin": "TESTASIN12345",
             "url": "https://test_third.com",
             "title": "Test Third Product",
-            "images": [{"url": "https://test_third.com/image.jpg"}],
+            "image": "https://test_third.com/image.jpg",
             "price": 1,
         }
         ]
 
         expected = {
-            "asin": "TESTASIN123",
-            "brand": "TEST_UPDATED",
-            "custumers_opinion": "0 de 5 estrellas",
-            "id": 1,
-            "images": [
-                "https://test_updated.com/image.jpg",
-                "https://test_second_updated.com/image.jpg"
-            ],
-            "model": "Test Model Update",
-            "price": 1000.0,
-            "ranking": 2,
-            "title": "Test Product Updated",
-            "twister": {
-                "color_name": {
-                    "product_TESTASIN1234": {
-                        "asin": "TESTASIN1234",
-                        "color": "Second test Color",
-                        "image": "https://test_second.com/image.jpg",
-                        "price": 10,
-                        "title": "Test Second Product Update",
-                        "url": "https://test_second_updated.com",
-                    }},
-                "style_name": {
-                    "product_TESTASIN1234": {
-                        "asin": "TESTASIN1234",
-                        "image": "https://test_second.com/image.jpg",
-                        "price": 10,
-                        "title": "Test Second Product Update",
-                        "url": "https://test_second_updated.com",
-                    }}},
-            "url": "https://test_updated.com.mx"
+            'alt': 'Test Product Updated',
+            'asin': 'TESTASIN123',
+            'brand': 'TEST_UPDATED',
+            'id': 1,
+            'image': 'https://test_updated.com/image.jpg',
+            'model': 'Test Model Update',
+            'price': 1000.0,
+            'ranking': 2,
+            'title': 'Test Product Updated',
+            'twister': {
+                'color_name': {
+                    'product_TESTASIN1234': {
+                        'alt': 'Test Second Product Update',
+                        'asin': 'TESTASIN1234',
+                        'color': 'Second test Color',
+                        'image': 'https://test_second.com/image.jpg',
+                        'price': 10.0,
+                        'title': 'Test Second Product Update',
+                        'url': 'https://test_second_updated.com'
+                    }
+                },
+                'style_name': {
+                    'product_TESTASIN1234': {
+                        'alt': 'Test Second Product Update',
+                        'asin': 'TESTASIN1234',
+                                'image': 'https://test_second.com/image.jpg',
+                                'price': 10.0,
+                                'title': 'Test Second Product Update',
+                                'url': 'https://test_second_updated.com'
+                    }
+                }
+            },
+            'url': 'https://test_updated.com.mx'
         }
-
         self.client.post(
             "/api/products/amazon",
             json=products,
@@ -476,4 +489,56 @@ class TestProducts(BaseTest):
         self.assertEqual(response.status_code, 200)
         self.assertListEqual(
             response.json["brands"],
-            [ product["brand"] for product in products[::-1]])
+            [product["brand"] for product in products[::-1]])
+
+    def test_patch_products_update(self):
+        """Test for partially updating a product."""
+        self.client.post(
+            "/api/product/amazon",
+            json=self.first_test_product,
+            headers={
+                "Authorization": f"Bearer {self.access_token}"})
+
+        patch_data = [{
+            'asin': 'TESTASIN123',
+            'price': 15067.0,
+            'url': 'https://www.test.com.mx/nubia-5g-Android-unlocke-Cellphone/dp/B0F66GWJ9C',
+            'image': 'https://m.media-test.com/image/I/71rgOENcn7L._AC_UL320_.jpg',
+            'alt': 'test unlocke Cellphone',
+            'title': 'test unlocke cellphone',
+            'customers_opinion': 4.6,
+            'basis_price': 15999.0
+        }]
+
+        expected = {
+            'alt': 'test unlocke Cellphone',
+            'asin': 'TESTASIN123',
+            'basis_price': 15999.0,
+            'brand': 'TEST',
+            'customers_opinion': 4.6,
+            'id': 1,
+            'image': 'https://m.media-test.com/image/I/71rgOENcn7L._AC_UL320_.jpg',
+            'model': 'Test Model',
+            'price': 15067.0,
+            'ranking': 1,
+            'title': 'test unlocke cellphone',
+            'url': 'https://www.test.com.mx/nubia-5g-Android-unlocke-Cellphone/dp/B0F66GWJ9C'
+            }
+
+        patch_response = self.client.patch(
+            f"/api/products/amazon",
+            json=patch_data,
+            headers={
+                "Authorization": f"Bearer {self.access_token}"})
+
+        self.assertEqual(patch_response.status_code, 200)
+        self.assertEqual(
+            patch_response.json["message"],
+            "1 products updated successfully.")
+
+        response = self.client.get(
+            f"/api/product/amazon/{self.first_test_product["asin"]}"
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertDictEqual(response.json, expected)
